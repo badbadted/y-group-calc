@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>滑步車 Y 組計算器</title>
+<style>
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --text: #1e293b;
+    --text-light: #64748b;
+    --border: #e2e8f0;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    padding: 0 0 2rem;
+  }
+  header {
+    background: var(--primary);
+    color: white;
+    padding: 1.25rem 1rem;
+    text-align: center;
+  }
+  header h1 { font-size: 1.35rem; font-weight: 700; }
+  header p { font-size: 0.8rem; opacity: 0.85; margin-top: 0.25rem; }
+  .container {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 1rem;
+  }
+  .card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .card-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-light);
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  input[type="text"], input[type="date"] {
+    width: 100%;
+    padding: 0.7rem 0.85rem;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 1.05rem;
+    color: var(--text);
+    background: white;
+    transition: border-color 0.2s;
+  }
+  input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+  }
+  .parsed-date {
+    font-size: 0.8rem;
+    color: var(--primary);
+    margin-top: 0.4rem;
+    font-weight: 500;
+    min-height: 1.2em;
+  }
+  .mode-selector {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .mode-btn {
+    flex: 1;
+    padding: 0.65rem 0.5rem;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    background: white;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    color: var(--text);
+    transition: all 0.2s;
+  }
+  .mode-btn.active {
+    border-color: var(--primary);
+    background: #eff6ff;
+    color: var(--primary);
+  }
+  .mode-btn .mode-desc {
+    font-size: 0.7rem;
+    color: var(--text-light);
+    margin-top: 0.15rem;
+  }
+  .mode-btn.active .mode-desc { color: var(--primary); opacity: 0.7; }
+
+  /* Result */
+  .result-card {
+    background: linear-gradient(135deg, #1e40af, #2563eb);
+    color: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    text-align: center;
+    display: none;
+  }
+  .result-card.show { display: block; animation: slideUp 0.3s ease; }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .result-main {
+    font-size: 3rem;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 0.25rem;
+  }
+  .result-sub {
+    font-size: 1.5rem;
+    font-weight: 600;
+    opacity: 0.95;
+    margin-bottom: 0.75rem;
+  }
+  .result-detail {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    font-size: 0.9rem;
+    opacity: 0.85;
+  }
+  .result-detail span { display: flex; align-items: center; gap: 0.3rem; }
+  .result-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.2);
+    padding: 0.2rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    margin-top: 0.75rem;
+  }
+
+  /* Error */
+  .error-msg {
+    background: #fef2f2;
+    color: #dc2626;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    display: none;
+    margin-bottom: 1rem;
+  }
+  .error-msg.show { display: block; }
+
+  /* Range info */
+  .range-info {
+    background: #f0fdf4;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    font-size: 0.82rem;
+    color: #166534;
+    display: none;
+    line-height: 1.6;
+  }
+  .range-info.show { display: block; }
+  .range-info strong { font-weight: 600; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>滑步車 Y 組計算器</h1>
+  <p>輸入生日與比賽日，自動算出分組</p>
+</header>
+
+<div class="container">
+
+  <!-- 生日輸入 -->
+  <div class="card">
+    <div class="card-title">生日</div>
+    <input type="date" id="birthdayInput">
+    <div class="parsed-date" id="parsedDate"></div>
+  </div>
+
+  <!-- 比賽日期 -->
+  <div class="card">
+    <div class="card-title">比賽日期</div>
+    <input type="date" id="raceDate">
+  </div>
+
+  <!-- 計算模式 -->
+  <div class="card">
+    <div class="card-title">不升組規則</div>
+    <div class="mode-selector">
+      <button class="mode-btn active" data-mode="day" id="modeDay">
+        當天不升組
+        <div class="mode-desc">生日當天不算升組</div>
+      </button>
+      <button class="mode-btn" data-mode="month" id="modeMonth">
+        當月不升組
+        <div class="mode-desc">生日當月都不升組</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- 錯誤訊息 -->
+  <div class="error-msg" id="errorMsg"></div>
+
+  <!-- 結果 -->
+  <div class="result-card" id="resultCard">
+    <div class="result-main" id="resultGroup"></div>
+    <div class="result-sub" id="resultAB"></div>
+    <div class="result-detail">
+      <span id="resultAge"></span>
+      <span id="resultBirthday"></span>
+    </div>
+    <div class="result-badge" id="resultMode"></div>
+  </div>
+
+  <!-- 區間資訊 -->
+  <div class="card range-info" id="rangeInfo"></div>
+
+</div>
+
+<script>
+(function() {
+  const birthdayInput = document.getElementById('birthdayInput');
+  const parsedDateEl = document.getElementById('parsedDate');
+  const raceDateInput = document.getElementById('raceDate');
+  const modeDayBtn = document.getElementById('modeDay');
+  const modeMonthBtn = document.getElementById('modeMonth');
+  const errorMsg = document.getElementById('errorMsg');
+  const resultCard = document.getElementById('resultCard');
+  const resultGroup = document.getElementById('resultGroup');
+  const resultAB = document.getElementById('resultAB');
+  const resultAge = document.getElementById('resultAge');
+  const resultBirthday = document.getElementById('resultBirthday');
+  const resultMode = document.getElementById('resultMode');
+  const rangeInfo = document.getElementById('rangeInfo');
+
+  let mode = 'day';
+
+  // 預設比賽日期為今天
+  const today = new Date();
+  raceDateInput.value = formatDateISO(today);
+
+  // === 生日輸入 → 自動計算 ===
+  birthdayInput.addEventListener('input', autoCalculate);
+  birthdayInput.addEventListener('change', autoCalculate);
+
+  // === 比賽日期變動 → 自動計算 ===
+  raceDateInput.addEventListener('input', autoCalculate);
+  raceDateInput.addEventListener('change', autoCalculate);
+
+  // === 模式切換 → 自動計算 ===
+  modeDayBtn.addEventListener('click', () => {
+    mode = 'day';
+    modeDayBtn.classList.add('active');
+    modeMonthBtn.classList.remove('active');
+    autoCalculate();
+  });
+  modeMonthBtn.addEventListener('click', () => {
+    mode = 'month';
+    modeMonthBtn.classList.add('active');
+    modeDayBtn.classList.remove('active');
+    autoCalculate();
+  });
+
+  // === 自動計算 ===
+  function autoCalculate() {
+    hideError();
+    resultCard.classList.remove('show');
+    rangeInfo.classList.remove('show');
+
+    if (!birthdayInput.value) return;
+    const birthday = new Date(birthdayInput.value + 'T00:00:00');
+    if (isNaN(birthday.getTime())) return;
+
+    // 顯示民國年
+    const rocY = birthday.getFullYear() - 1911;
+    parsedDateEl.textContent = `民國 ${rocY} 年 ${birthday.getMonth()+1} 月 ${birthday.getDate()} 日`;
+
+    const raceDate = new Date(raceDateInput.value + 'T00:00:00');
+    if (isNaN(raceDate.getTime())) return;
+
+    if (birthday >= raceDate) {
+      showError('生日必須早於比賽日期');
+      return;
+    }
+
+    // 計算足歲
+    const age = computeAge(birthday, raceDate, mode);
+
+    if (age < 2) {
+      showError('未滿 2 歲，尚無 Y 組');
+      return;
+    }
+    if (age > 8) {
+      showError(`已 ${age} 歲，超過 Y8 組範圍`);
+      return;
+    }
+
+    const yGroup = `Y${age}`;
+
+    // 大小組
+    const rangeStart = computeRangeStart(age, raceDate, mode);
+    const rangeMid = new Date(rangeStart);
+    rangeMid.setMonth(rangeMid.getMonth() + 6);
+    const rangeEnd = computeRangeEnd(age, raceDate, mode);
+
+    const ab = birthday < rangeMid ? '大組' : '小組';
+
+    // 精確年齡
+    const preciseAge = computePreciseAge(birthday, raceDate);
+
+    // 顯示結果
+    resultGroup.textContent = yGroup;
+    resultAB.textContent = ab;
+    resultAge.textContent = `${preciseAge}`;
+    resultBirthday.textContent = `${formatDisplayDate(birthday)}`;
+    resultMode.textContent = mode === 'day' ? '當天不升組' : '當月不升組';
+    resultCard.classList.add('show');
+
+    // 區間資訊
+    rangeInfo.innerHTML =
+      `<strong>${yGroup} 組出生區間：</strong><br>` +
+      `${formatDisplayDate(rangeStart)} ～ ${formatDisplayDate(rangeEnd)}<br>` +
+      `<strong>大組：</strong>${formatDisplayDate(rangeStart)} ～ ${formatDisplayDate(new Date(rangeMid.getTime() - 86400000))}<br>` +
+      `<strong>小組：</strong>${formatDisplayDate(rangeMid)} ～ ${formatDisplayDate(rangeEnd)}`;
+    rangeInfo.classList.add('show');
+  }
+
+  // === 計算足歲 ===
+  function computeAge(birthday, raceDate, mode) {
+    let age = raceDate.getFullYear() - birthday.getFullYear();
+    if (mode === 'day') {
+      const rM = raceDate.getMonth(), rD = raceDate.getDate();
+      const bM = birthday.getMonth(), bD = birthday.getDate();
+      if (rM < bM || (rM === bM && rD <= bD)) age -= 1;
+    } else {
+      if (raceDate.getMonth() <= birthday.getMonth()) age -= 1;
+    }
+    return age;
+  }
+
+  function computeRangeStart(age, raceDate, mode) {
+    if (mode === 'day') {
+      return new Date(raceDate.getFullYear() - age - 1, raceDate.getMonth(), raceDate.getDate());
+    } else {
+      return new Date(raceDate.getFullYear() - age - 1, raceDate.getMonth(), 1);
+    }
+  }
+
+  function computeRangeEnd(age, raceDate, mode) {
+    if (mode === 'day') {
+      const end = new Date(raceDate.getFullYear() - age, raceDate.getMonth(), raceDate.getDate());
+      end.setDate(end.getDate() - 1);
+      return end;
+    } else {
+      return new Date(raceDate.getFullYear() - age, raceDate.getMonth(), 0);
+    }
+  }
+
+  function computePreciseAge(birthday, raceDate) {
+    let years = raceDate.getFullYear() - birthday.getFullYear();
+    let months = raceDate.getMonth() - birthday.getMonth();
+    if (raceDate.getDate() < birthday.getDate()) months -= 1;
+    if (months < 0) { years -= 1; months += 12; }
+    return months === 0 ? `${years} 歲` : `${years} 歲 ${months} 個月`;
+  }
+
+  function formatDateISO(d) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  function formatDisplayDate(d) {
+    return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+  }
+
+  function showError(msg) {
+    errorMsg.textContent = msg;
+    errorMsg.classList.add('show');
+  }
+
+  function hideError() {
+    errorMsg.classList.remove('show');
+  }
+})();
+</script>
+
+</body>
+</html>
