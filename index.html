@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>滑步車 Y 組計算器</title>
+<title>滑步車歲組計算器</title>
 <style>
   :root {
     --primary: #2563eb;
@@ -173,8 +173,8 @@
 <body>
 
 <header>
-  <h1>滑步車 Y 組計算器</h1>
-  <p>輸入生日與比賽日，自動算出分組</p>
+  <h1>滑步車歲組計算器</h1>
+  <p>輸入生日與比賽日，自動算出歲組</p>
 </header>
 
 <div class="container">
@@ -295,16 +295,12 @@
     // 計算足歲
     const age = computeAge(birthday, raceDate, mode);
 
-    if (age < 2) {
-      showError('未滿 2 歲，尚無 Y 組');
-      return;
-    }
-    if (age > 8) {
-      showError(`已 ${age} 歲，超過 Y8 組範圍`);
+    if (age < 0) {
+      showError('日期有誤，請檢查');
       return;
     }
 
-    const yGroup = `Y${age}`;
+    const ageLabel = `${age} 歲`;
 
     // 大小組
     const rangeStart = computeRangeStart(age, raceDate, mode);
@@ -318,7 +314,7 @@
     const preciseAge = computePreciseAge(birthday, raceDate);
 
     // 顯示結果
-    resultGroup.textContent = yGroup;
+    resultGroup.textContent = ageLabel;
     resultAB.textContent = ab;
     resultAge.textContent = `${preciseAge}`;
     resultBirthday.textContent = `${formatDisplayDate(birthday)}`;
@@ -327,7 +323,7 @@
 
     // 區間資訊
     rangeInfo.innerHTML =
-      `<strong>${yGroup} 組出生區間：</strong><br>` +
+      `<strong>${ageLabel} 組出生區間：</strong><br>` +
       `${formatDisplayDate(rangeStart)} ～ ${formatDisplayDate(rangeEnd)}<br>` +
       `<strong>大組：</strong>${formatDisplayDate(rangeStart)} ～ ${formatDisplayDate(new Date(rangeMid.getTime() - 86400000))}<br>` +
       `<strong>小組：</strong>${formatDisplayDate(rangeMid)} ～ ${formatDisplayDate(rangeEnd)}`;
